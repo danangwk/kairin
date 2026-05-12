@@ -1,0 +1,89 @@
+const sessionRepo = require('../services/db/sessionRepo');
+
+const { handleEditSession, hasEditSession } = require('../handlers/edit');
+const { handleOCRSession } = require('../flows/ocrSessionFlow');
+const { handleTextTransaction } = require('../flows/transactionFlow');
+const { handleAI } = require('../flows/aiFlow');
+
+const { routeCommand } = require('./commandRouter');
+const { rateLimit } = require('../middleware/rateLimit');
+
+async function routeMessage(bot, chatId, user, text) {
+  const limited = await rateLimit(
+    user.id,
+    bot,
+    chatId
+  );
+
+  if (limited) {
+    return true;
+  }
+  const input = text.toLowerCase().trim();
+
+  // ================================
+  // 🔥 OCR SESSION
+  // ================================
+  const ocrSession = await sessionRepo.getOcrSession(user.id);
+
+  if (ocrSession) {
+    await handleOCRSession(
+      bot,
+      chatId,
+      user,
+      input,
+      ocrSession
+    );
+
+    return true;
+  }
+
+  // ================================
+  // 🔥 EDIT SESSION
+  // ================================
+  if (hasEditSession(user.id)) {
+    const handled = await handleEditSession(
+      bot,
+      chatId,
+      user,
+      text
+    );
+
+    if (handled) return true;
+  }
+
+   const isCommand = await routeCommand(
+   bot,
+   chatId,
+   user,
+   input
+ );
+
+ if (isCommand) {
+   return true;
+ }
+
+  // ================================
+  // 🔥 TRANSACTION FLOW
+  // ================================
+  const isTransaction = await handleTextTransaction(
+    bot,
+    chatId,
+    user,
+    text
+  );
+
+  if (isTransaction) {
+    return true;
+  }
+
+  // ================================
+  // 🔥 AI FALLBACK
+  // ================================
+  await handleAI(bot, chatId, user, text);
+
+  return true;
+}
+
+module.exports = {
+  routeMessage
+};
