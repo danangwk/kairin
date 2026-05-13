@@ -107,7 +107,7 @@ PENTING:
     };
 
   } catch (error) {
-    // 🔥 HANDLE KHUSUS QUOTA
+    // HANDLE KHUSUS QUOTA
     if (error.message?.includes('429')) {
       console.log('🚫 Quota habis (429)');
       return null;
