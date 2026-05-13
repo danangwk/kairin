@@ -116,11 +116,16 @@ async function handleOCR(bot, chatId, user, photo) {
       amount: parsed.amount,
       description: (parsed.description || 'Transaksi').slice(0, config.OCR_MAX_DESCRIPTION),
       category: parsed.category || 'Lain-lain',
-      type: parsed.type || 'pengeluaran'
+      type: parsed.type || 'pengeluaran',
+
+      merchant: parsed.merchant || null,
+      bill_date: parsed.bill_date || null,
+      bill_items: parsed.items || []
     };
 
     // 🔥 SIMPAN KE CACHE (DI SINI)
     if (cleanParsed.amount > 0) {
+      console.log(JSON.stringify(cleanParsed, null, 2));
       setOCRCache(fileId, cleanParsed);
     }
 

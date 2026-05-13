@@ -30,21 +30,46 @@ Kamu adalah AI OCR + parser keuangan Indonesia.
 
 Analisis gambar struk ini dan langsung ekstrak menjadi JSON transaksi.
 
-Kembalikan HANYA JSON:
+Kembalikan HANYA JSON valid berikut:
 {
   "amount": number,
   "description": string,
+  "merchant": string,
+  "bill_date": "YYYY-MM-DD",
   "category": string,
-  "type": "pengeluaran"
+  "type": "pengeluaran",
+  "items": [
+    {
+      "name": string,
+      "qty": number,
+      "unit_price": number,
+      "total_price": number
+    }
+  ]
 }
 
 Aturan:
-- amount = total belanja (angka saja, tanpa titik/koma)
-- description = nama toko atau item utama
-- category pilih sederhana (Makanan & Minuman, Belanja, dll)
+- amount = total akhir belanja
+- description = nama toko atau ringkasan transaksi
+- merchant = nama toko/merchant
+- bill_date format YYYY-MM-DD jika ada
+- category pilih kategori sederhana Indonesia
 - type selalu "pengeluaran"
-- Kalau tidak yakin atau gambar buram:
-  {"error": "struk tidak terbaca"}
+
+Aturan items:
+- items berisi daftar barang pada struk
+- qty harus angka
+- unit_price harga satuan
+- total_price = subtotal item
+- kalau qty tidak ada, gunakan 1
+- kalau item tidak terbaca, gunakan []
+
+PENTING:
+- Semua nominal harus angka murni tanpa titik/koma
+- Jangan gunakan markdown
+- Balas HANYA JSON valid
+- Jika gambar blur/parah:
+{"error":"struk tidak terbaca"}
 `;
 
     // 🔥 retry lebih hemat + stop kalau quota habis
@@ -74,8 +99,11 @@ Aturan:
     return {
       amount,
       description: (data.description || '').trim(),
+      merchant: (data.merchant || '').trim(),
+      bill_date: data.bill_date || null,
       category: (data.category || 'Lain-lain').trim(),
-      type: 'pengeluaran'
+      type: 'pengeluaran',
+      items: Array.isArray(data.items) ? data.items : []
     };
 
   } catch (error) {
